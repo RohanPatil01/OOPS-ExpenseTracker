@@ -20,6 +20,7 @@ class ExpenseTracker:
         self.__record_transactions()
         self.__record_paid_by()
         self.__record_balance_sheet()
+        self.__record_settlement()
         
     def __str__(self):
         return "Transaction recorded successfully!"
@@ -63,15 +64,24 @@ class ExpenseTracker:
                                     aggfunc="sum",
                                     margins=True
                             )
+            
+    def __record_settlement(self):
+        settlement_data = []
+        grouped = self.final_paid_by_df.groupby(['payer', 'receivers'])
+        for (payer, receiver), group in grouped:
+            if payer != receiver:
+                amount_owed = group['amount'].sum()
+                settlement_data.append({'Name': payer, "Who'll pay": receiver, 'Amount': amount_owed})
         
+        self.settlement_df = pd.DataFrame(settlement_data)
+
         with pd.ExcelWriter('ExpenseTracker.xlsx') as writer:
             self.final_transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
             self.final_paid_by_df.to_excel(writer, sheet_name='PaidBy', index=False)
             self.balance_sheet_df.to_excel(writer, sheet_name='BalanceSheet', index=True)
-            
-        
+            self.settlement_df.to_excel(writer, sheet_name='Settlement', index=False)
 
-    def show_transactions(self):
+    def show_transaction(self):
         return self.current_transactions_df
 
     def show_paid_by(self):
@@ -80,6 +90,9 @@ class ExpenseTracker:
     def show_balance_sheet(self):
         return self.balance_sheet_df
 
+    def show_settlement(self):
+        return self.settlement_df
+        
     def show_history(self):
         return self.final_transactions_df
         
